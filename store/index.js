@@ -10,7 +10,7 @@ class Storage {
     async getDbTimers() {
         const dbTimers = await Record.findAll();
         for (const timer of dbTimers) {
-            this.timers.set(timer.device_id, timer.seconds);
+            this.timers.set(timer.device_id, { seconds: timer.seconds, createdAt: timer.createdAt });
         }
         setInterval(() => this.updateTimers(), 1000)
     }
@@ -18,9 +18,9 @@ class Storage {
     async updateTimers() {
         this.timers.forEach(
             async (value, key) => {
-                this.timers.set(key, value + 1);
+                this.timers.set(key, { seconds: value.seconds + 1, createdAt: value.createdAt });
                 Record.update(
-                    { seconds: value + 1 },
+                    { seconds: value.seconds + 1 },
                     { where: { device_id: key } }
                 );
             }
@@ -30,8 +30,8 @@ class Storage {
     async registerTimer(device_id) {
         const candidate = await Record.findOne({ where: { device_id } });
         if (!!candidate) return { success: true };
-        await Record.create({ device_id, seconds: 0 });
-        this.timers.set(device_id, 0);
+        const newTimer = await Record.create({ device_id, seconds: 0 });
+        this.timers.set(device_id, { seconds: 0, createdAt: newTimer.createdAt });
         return { success: true }
     }
 
